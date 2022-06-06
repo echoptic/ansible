@@ -1,31 +1,13 @@
 ---
 - hosts: all
-  vars_prompt:
-    - name: http_host
-      private: false
-      prompt: Enter domain
-
-    - name: http_conf
-      private: false
-      prompt: Enter apache config name
-
-    - name: http_port
-      private: false
-      prompt: Enter port
-
-    - name: mysql_root_password
-      prompt: Enter mysql root password
-
-    - name: mysql_db
-      private: false
-      prompt: Enter mysql database name
-
-    - name: mysql_user
-      private: false
-      prompt: Enter mysql username
-
-    - name: mysql_password
-      prompt: Enter mysql password
+  vars:
+    http_host: 'veljko.nz'
+    http_conf: 'ansible'
+    http_port: '80'
+    mysql_root_password: mysqlpass
+    mysql_db: ansibledb
+    mysql_user: ansibleuser
+    mysql_password: mysqlpass
 
   tasks:
   - name: Update the system
@@ -36,7 +18,11 @@
   - name: Install dependencies
     apt: name={{item}} state=latest
     loop: [ apache2, mysql-server, php, libapache2-mod-php, php-mysql, python3-pymysql ]
-    
+
+  # - name: Install MYSQL-python
+  #   pip:
+  #     name: PyMySQL
+
   # apache setup
   - name: Create root folder
     file:
@@ -65,27 +51,31 @@
     notify: restart apache
 
   # mysql setup
-  - name: Set root password
+  - name: Set mysql root password
     mysql_user:
+      login_password: ''
       name: root
       password: '{{mysql_root_password}}'
-      login_unix_socket: /var/run/mysqld/mysqld.sock
+      login_user: root
+      login_host: localhost
+      state: present
 
   - name: Create database
     mysql_db:
       name: '{{mysql_db}}'
-      state: present
       login_user: root
       login_password: '{{mysql_root_password}}'
+      login_unix_socket: /var/lib/mysql/mysql.sock
+      state: present
 
   - name: Create mysql user
     mysql_user:
       name: '{{mysql_user}}'
       password: '{{mysql_password}}'
       priv: '{{mysql_db}}.*.ALL'
-      state: present
       login_user: root
       login_password: '{{mysql_root_password}}'
+      state: present
 
   # wordpress setup
   - name: Download wordpress
